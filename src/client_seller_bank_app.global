@@ -1,0 +1,19 @@
+client->seller:title<string>.
+seller->client:price<integer>.
+(
+    client->seller:ok.
+    seller->bank:+price<integer>.
+    seller<<bank.
+    seller->client:pay<integer>.
+    client->seller:card<string>.
+    seller>>bank.
+    (
+        bank->seller:ok.
+        seller->client:date<string>.end
+        ,
+        bank->seller:ko.
+        seller->client:ko.end
+    )
+    ,
+    client->seller:ko.end
+)
