@@ -55,6 +55,9 @@ pretty_print([], _Processes) -> ok;
 pretty_print([ T = {trace, Pid, send, _Msg, To} | Rest], Processes) when is_pid(To) ->
     pretty_print_if_interesting(lists:keymember(Pid, 2, Processes) and lists:keymember(To, 2, Processes), T, Processes),
     pretty_print(Rest, Processes);
+pretty_print([ T = {trace, Pid, send, _Msg, Ref} | Rest], Processes) when is_atom(Ref) ->
+    pretty_print_if_interesting(lists:keymember(Pid, 2, Processes) and lists:keymember(Ref, 1, Processes), T, Processes),
+    pretty_print(Rest, Processes);
 pretty_print([ T = {trace, Pid, send, _Msg, _Ref} | Rest], Processes) ->
     pretty_print_if_interesting(lists:keymember(Pid, 2, Processes), T, Processes),
     pretty_print(Rest, Processes);
@@ -68,15 +71,17 @@ pretty_print([T|Rest], Processes) ->
     io:format("Unexpected trace ~p~n", [T]),
     pretty_print(Rest, Processes).
 
-pretty_print_if_interesting(false, _T, _) -> ok; % io:format("(IGNORED) ~w~n", [T]);
+pretty_print_if_interesting(false, _T, _) -> ok; %io:format("(IGNORED) ~w~n", [T]);
+pretty_print_if_interesting(true, {trace, _Pid, 'receive', timeout}, _Processes) -> ok; % ignore timers
+pretty_print_if_interesting(true, {trace, _Pid, 'receive', {code_server,_}}, _Processes) -> ok; % ignore the code server
 pretty_print_if_interesting(true, {trace, Pid, send, Msg, Ref}, Processes) ->
-    {SenderName,Pid,worker,_} = lists:keyfind(Pid, 2, Processes),
+    {SenderName, Pid, worker,_} = lists:keyfind(Pid, 2, Processes),
     io:format("~p --> ~p : ~w~n", [SenderName, Ref, format(Msg)]);
 pretty_print_if_interesting(true, {trace, _SupPid, 'receive', {'EXIT', Pid, normal}}, Processes) ->
-    {RecipientName,Pid,worker,_} = lists:keyfind(Pid, 2, Processes),
+    {RecipientName, Pid, worker,_} = lists:keyfind(Pid, 2, Processes),
     io:format("~p ends ~n", [RecipientName]);
 pretty_print_if_interesting(true, {trace, Pid, 'receive', Msg}, Processes) ->
-    {RecipientName,Pid,worker,_} = lists:keyfind(Pid, 2, Processes),
+    {RecipientName, Pid, worker,_} = lists:keyfind(Pid, 2, Processes),
     io:format("~p processes: ~p~n", [RecipientName, format(Msg)]);
 pretty_print_if_interesting(true, T, _P)  ->
     io:format("~w~n", [T]).

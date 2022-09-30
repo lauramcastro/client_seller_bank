@@ -13,9 +13,9 @@
 %% GenServer callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--define(TITLE, "Novecento").
+-define(TITLES_OF_INTEREST, ["Ultimo tango a Parigi", "Novecento", "L'ultimo imperatore", "Io ballo da sola"]).
 -define(LIMIT, 50).
--define(CARD_NUMBER, "0000000000000000").
+-define(CARD_NUMBERS, ["0000000000000000", "123456789101112", "9876543210123456789", "9999999999999999"]).
 
 -spec start()->'#seller!title<string>.seller?price<integer>.@(seller!ok.seller?pay<integer>.seller!card<string>.&(seller?date<string>.end,seller?ko.end),seller!ko.end)'.
 start() ->
@@ -27,34 +27,45 @@ start_link(Name) ->
 %% internals
 
 init(_Args) ->
-    gen_server:cast(seller, {client, title, ?TITLE}),
-    {ok, ?TITLE}.
+    Title = pick(?TITLES_OF_INTEREST),
+    ok = gen_server:cast(seller, {client, title, Title}),
+    {ok, Title}.
+
 
 handle_call(stop, _From, State) ->
     {stop, normal, stopped, State}.
 
-handle_cast({seller, price,  Price}, ?TITLE) when Price < ?LIMIT ->
-    gen_server:cast(seller, {client, ok}),
-    {noreply, {?TITLE, Price}};
-handle_cast({seller, price,  _Price}, ?TITLE) ->
-    gen_server:cast(seller, {client, ko}),
+
+handle_cast({seller, price,  Price}, Title) when Price =< ?LIMIT ->
+    ok = gen_server:cast(seller, {client, ok}),
+    {noreply, {Title, Price}};
+handle_cast({seller, price,  _Price}, _Title) ->
+    ok = gen_server:cast(seller, {client, ko}),
     {stop, normal, []};
 
-handle_cast({seller, pay, Price}, {?TITLE, Price}) ->
-    gen_server:cast(seller, {client, card, ?CARD_NUMBER}),
-    {noreply, {?TITLE, Price, ?CARD_NUMBER}};
+handle_cast({seller, pay, Price}, {Title, Price}) ->
+    CardNumber = pick(?CARD_NUMBERS),
+    ok = gen_server:cast(seller, {client, card, CardNumber}),
+    {noreply, {Title, Price, CardNumber}};
 
-handle_cast({seller, date, _Date}, {?TITLE, _Price, ?CARD_NUMBER}) ->
+handle_cast({seller, date, _Date}, {_Title, _Price, _CardNumber}) ->
    {stop, normal, []};
-handle_cast({seller, ko}, {?TITLE, _Price, ?CARD_NUMBER}) ->
+handle_cast({seller, ko}, {_Title, _Price, _CardNumber}) ->
    {stop, normal, []}.
 
 
 handle_info(_Info, State) ->
     {noreply, State}.
 
+
 terminate(_Reason, _State) ->
     ok.
 
+
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+%% utility functions
+
+pick(List) ->
+    lists:nth(rand:uniform(length(List)), List).
