@@ -6,7 +6,7 @@
 -behaviour(gen_server).
 
 %% Custom API
--export([start/0, pay/2]).
+-export([start/0]).
 
 %% GenServer API
 -export([start_link/1]).
@@ -24,31 +24,31 @@ start() ->
 start_link(Name) ->
     gen_server:start_link({local, Name}, ?MODULE, [], []).
 
-pay(Who, Price) ->
-    gen_server:handle_call(?MODULE, {Who, pay, Price}).
+%% internals
 
 init(_Args) ->
-    seller:title(?TITLE),
+    gen_server:cast(seller, {client, title, ?TITLE}),
     {ok, ?TITLE}.
 
 handle_call(stop, _From, State) ->
-    {stop, normal, stopped, State};
+    {stop, normal, stopped, State}.
 
-handle_call({seller, price,  Price}, _From, ?TITLE) when Price < ?LIMIT ->
-    {reply, ok, {?TITLE, Price}};
-handle_call({seller, price,  Price}, _From, {?TITLE, Price})  ->
-    {reply, ko, []};
+handle_cast({seller, price,  Price}, ?TITLE) when Price < ?LIMIT ->
+    gen_server:cast(seller, {client, ok}),
+    {noreply, {?TITLE, Price}};
+handle_cast({seller, price,  Price}, ?TITLE) ->
+    gen_server:cast(seller, {client, ko}),
+    {stop, normal, []};
 
-handle_call({seller, pay, Price}, _From, {?TITLE, Price}) ->
-    case seller:card_details({client, card, ?CARD_NUMBER}) of
-        {seller, date, _Date} ->
-           {reply, ok, []};
-        {seller, ko} ->
-            {reply, ko, []}
-        end.
+handle_cast({seller, pay, Price}, {?TITLE, Price}) ->
+    gen_server:cast(seller, {client, card, ?CARD_NUMBER}),
+    {noreply, {?TITLE, Price, ?CARD_NUMBER}};
 
-handle_cast(_Msg, State) ->
-    {noreply, State}.
+handle_cast({seller, date, _Date}, {?TITLE, Price, ?CARD_NUMBER}) ->
+   {stop, normal, []};
+handle_cast({seller, ko}, {?TITLE, Price, ?CARD_NUMBER}) ->
+   {stop, normal, []}.
+
 
 handle_info(_Info, State) ->
     {noreply, State}.

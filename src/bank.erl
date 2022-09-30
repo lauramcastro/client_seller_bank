@@ -20,35 +20,35 @@ start() ->
 start_link(Name) ->
     gen_server:start_link({local, Name}, ?MODULE, [], []).
 
+%% internals
+
 init(_Args) ->
     {ok, []}.
 
 handle_call(stop, _From, State) ->
-    {stop, normal, stopped, State};
+    {stop, normal, stopped, State}.
 
-handle_call({seller, price, Price}, _From, []) ->
-    {reply, ok, [{price, Price}]};
+handle_cast({seller, price, Price}, []) ->
+    {noreply, {price, Price}};
 
-handle_call({client, card, CardNumber}, _From, {delegated, From, Name}) ->
-    true = unregister(Name),
-    true = register(Name, From),
+handle_cast({seller, start_delegation, From}, {price, Price}) ->
+    true = unregister(seller),
+    true = unregister(bank),
+    true = register(seller, self()),
+    gen_server:cast(client, {seller, pay, Price}),
+    {noreply, {delegated, From, seller}};
+
+handle_cast({client, card, CardNumber}, {delegated, From, seller}) ->
+    true = unregister(seller),
+    true = register(seller, From),
     true = register(?MODULE, self()),
-    Name ! {?MODULE, end_delegation},
-    Reply = case length(CardNumber)==16 of
-        true -> ok;
-        false -> ko
+    gen_server:cast(seller, {bank, end_delegation}),
+    case length(CardNumber)==16 of
+        true  -> gen_server:cast(seller, {bank, ok});
+        false -> gen_server:cast(seller, {bank, ko})
       end,
-    {reply, Reply, []}.
+    {stop, normal, []}.
 
-handle_cast(_Msg, State) ->
-    {noreply, State}.
-
-handle_info({seller, start_delegation, Name, From}, {price, Price}) ->
-    true = unregister(Name),
-    true = unregister(?MODULE),
-    true = register(Name, self()),
-    client:pay(Name, Price),
-    {noreply, {delegated, From, Name}};
 handle_info(_Info, State) ->
     {noreply, State}.
 

@@ -15,41 +15,48 @@
 
 -define(PRICES, #{"Novecento" => 25}).
 
+-spec start()->'#client?title<String>.client!price<Int>.&(client?ok.bank!+price<Int>.<<bank.bank>>.&(bank?ok.client!date<String>.End,bank?ko.client!ko.End),client?ko.End)'.
 start() ->
     start_link(?MODULE).
 
 start_link(Name) ->
     gen_server:start_link({local, Name}, ?MODULE, [], []).
 
+%% internals
+
 init(_Args) ->
     {ok, []}.
 
 handle_call(stop, _From, State) ->
-    {stop, normal, stopped, State};
+    {stop, normal, stopped, State}.
 
-handle_call({client, title, Title}, _From, []) ->
+handle_cast({client, title, Title}, []) ->
     Price = maps:get(Title, ?PRICES),
-    {reply, {?MODULE, price, Price}, {client, Title, Price}};
-
-handle_call({client, ok}, _From, {client, Title, Price}) ->
-    bank:price(Price),
-    bank ! {seller, start_delegation, seller, self()},
+    gen_server:cast(client, {seller, price, Price}),
     {noreply, {client, Title, Price}};
 
-handle_call({client, ko}, _From, {client, _Title, _Price}) ->
-    {noreply, []};
+handle_cast({client, ok}, {client, Title, Price}) ->
+    gen_server:cast(bank, {seller, price, Price}),
+    gen_server:cast(bank, {seller, start_delegation, self()}),
+    {noreply, {client, Title, Price, waiting}};
 
-handle_call({bank, ok}, _From, {client, _Title, _Price}) ->
-    {reply, {seller, date, "22 ottobre 2022"}, []};
+handle_cast({client, ko}, {client, _Title, _Price}) ->
+    {stop, normal, []};
 
-handle_call(_Request, _From, State) ->
-    {reply, ok, State}.
+handle_cast({bank, end_delegation}, {client, Title, Price, waiting}) ->
+    {noreply, {client, Title, Price, processed}};
+
+handle_cast({bank, ok}, {client, _Title, _Price, processed}) ->
+    gen_server:cast(client, {seller, date, "22 ottobre 2022"}),
+    {stop, normal, []};
+handle_cast({bank, ko}, {client, _Title, _Price, processed}) ->
+    gen_server:cast(client, {seller, ko}),
+    {stop, normal, []};
+
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info({bank, end_delegation}, {client, Title, Price}) ->
-    {noreply, {client, Title, Price}};
 handle_info(_Info, State) ->
     {noreply, State}.
 
