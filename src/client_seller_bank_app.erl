@@ -69,26 +69,17 @@ pretty_print([T|Rest], Processes) ->
     pretty_print(Rest, Processes).
 
 pretty_print_if_interesting(false, _T, _) -> ok; % io:format("(IGNORED) ~w~n", [T]);
-% pretty_print_if_interesting(true, {trace, Pid, send, {'$gen_call', {Pid,_}, Msg}, To}, Processes) ->
-%     {SenderName,Pid,worker,_} = lists:keyfind(Pid, 2, Processes),
-%     {RecipientName,To,worker,_} = lists:keyfind(To, 2, Processes),
-%     io:format("~p sends to ~p message ~w ~n", [SenderName, RecipientName, Msg]);
-% pretty_print_if_interesting(true, {trace, Pid, send, Msg, To}, Processes) when is_pid(To) ->
-%     {SenderName,Pid,worker,_} = lists:keyfind(Pid, 2, Processes),
-%     {RecipientName,To,worker,_} = lists:keyfind(To, 2, Processes),
-%     io:format("~p sends to ~p message ~w ~n", [SenderName, RecipientName, Msg]);
-pretty_print_if_interesting(true, {trace, Pid, send, Msg, _Ref}, Processes) ->
+pretty_print_if_interesting(true, {trace, Pid, send, Msg, Ref}, Processes) ->
     {SenderName,Pid,worker,_} = lists:keyfind(Pid, 2, Processes),
-    io:format("~p sends message ~w ~n", [SenderName, Msg]);
-% pretty_print_if_interesting(true, {trace, Pid, 'receive', {'$gen_call', {From,_}, Msg}}, Processes) ->
-%     {RecipientName,Pid,worker,_} = lists:keyfind(Pid, 2, Processes),
-%     {SenderName,From,worker,_} = lists:keyfind(From, 2, Processes),
-%     io:format("~p processes received message ~p sent by ~p~n", [RecipientName, Msg, SenderName]);
+    io:format("~p --> ~p : ~w~n", [SenderName, Ref, format(Msg)]);
 pretty_print_if_interesting(true, {trace, _SupPid, 'receive', {'EXIT', Pid, normal}}, Processes) ->
     {RecipientName,Pid,worker,_} = lists:keyfind(Pid, 2, Processes),
-    io:format("~p ends normally~n", [RecipientName]);
+    io:format("~p ends ~n", [RecipientName]);
 pretty_print_if_interesting(true, {trace, Pid, 'receive', Msg}, Processes) ->
     {RecipientName,Pid,worker,_} = lists:keyfind(Pid, 2, Processes),
-    io:format("~p processes received message ~p~n", [RecipientName, Msg]);
+    io:format("~p processes: ~p~n", [RecipientName, format(Msg)]);
 pretty_print_if_interesting(true, T, _P)  ->
     io:format("~w~n", [T]).
+
+format({'$gen_cast',Msg}) -> Msg;
+format(Msg) -> Msg.
