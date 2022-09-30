@@ -19,7 +19,7 @@ After interacting, they will end their execution normally.
 
 Consequently, one should see one of the following outputs:
 
-** Client completes the transaction for the chosen title **
+**Client completes the transaction for the chosen title**
 
 ```
 ===> Verifying dependencies...
@@ -66,7 +66,7 @@ client ends
 == END EXECUTION TRACES ==
 ```
 
-** Client does not complete the transaction for the chosen title because of the bank rejecting its card **
+**Client does not complete the transaction for the chosen title because of the bank rejecting its card**
 
 ```
 == APPLICATION PARTICIPANTS ==
@@ -99,7 +99,7 @@ client ends
 
 ```
 
-** Client does not complete the transaction for the chosen title due to high price **
+**Client does not complete the transaction for the chosen title due to high price**
 
 ```
 == APPLICATION PARTICIPANTS ==
