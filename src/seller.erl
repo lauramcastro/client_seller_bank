@@ -13,7 +13,10 @@
 %% GenServer callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
--define(PRICES, #{"Novecento" => 25}).
+-define(PRICES, #{"Ultimo tango a Parigi" => 100,
+                  "Novecento" => 25,
+                  "L'ultimo imperatore" => 75,
+                  "Io ballo da sola" => 50}).
 
 -spec start()->'#client?title<String>.client!price<Int>.&(client?ok.bank!+price<Int>.<<bank.bank>>.&(bank?ok.client!date<String>.End,bank?ko.client!ko.End),client?ko.End)'.
 start() ->
@@ -31,6 +34,7 @@ handle_call(stop, _From, State) ->
     {stop, normal, stopped, State}.
 
 handle_cast({client, title, Title}, []) ->
+    timer:sleep(100), % pretend it takes a bit to look up the title
     Price = maps:get(Title, ?PRICES),
     gen_server:cast(client, {seller, price, Price}),
     {noreply, {client, Title, Price}};
