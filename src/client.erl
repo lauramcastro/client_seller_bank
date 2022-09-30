@@ -36,7 +36,7 @@ handle_call(stop, _From, State) ->
 handle_cast({seller, price,  Price}, ?TITLE) when Price < ?LIMIT ->
     gen_server:cast(seller, {client, ok}),
     {noreply, {?TITLE, Price}};
-handle_cast({seller, price,  Price}, ?TITLE) ->
+handle_cast({seller, price,  _Price}, ?TITLE) ->
     gen_server:cast(seller, {client, ko}),
     {stop, normal, []};
 
@@ -44,9 +44,9 @@ handle_cast({seller, pay, Price}, {?TITLE, Price}) ->
     gen_server:cast(seller, {client, card, ?CARD_NUMBER}),
     {noreply, {?TITLE, Price, ?CARD_NUMBER}};
 
-handle_cast({seller, date, _Date}, {?TITLE, Price, ?CARD_NUMBER}) ->
+handle_cast({seller, date, _Date}, {?TITLE, _Price, ?CARD_NUMBER}) ->
    {stop, normal, []};
-handle_cast({seller, ko}, {?TITLE, Price, ?CARD_NUMBER}) ->
+handle_cast({seller, ko}, {?TITLE, _Price, ?CARD_NUMBER}) ->
    {stop, normal, []}.
 
 
